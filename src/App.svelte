@@ -16,15 +16,15 @@
 
   /***********************************/
   // Customise the app by changing the following variables.
-  const TITLE = "Shapes";
-  const DESCRTIPTION = "A collection of shapes on the blockchain";
-  const HEADER_TITLE = "shapes.xyz";
-  const HEADER_LINK = "https://solarare.com";
+  const TITLE = "Kingdom Key";
+  const DESCRTIPTION = "Get your key, and join the kingdom!";
+  const HEADER_TITLE = "Kingdom Key Collection";
+  const HEADER_LINK = "https://www.kingdomkeynft.com/";
   // Your image or GIF needs to be in the /public folder for this to work
-  const IMAGE_LINK = "/example.gif";
+  const IMAGE_LINK = "https://cdn.discordapp.com/attachments/929106541829828608/930219895298347028/ezgif-7-dbf7fde9c5.gif";
   /***********************************/
 
-  let { solana } = window as any;
+  const { solana } = window as any;
   const rpcUrl = import.meta.env.VITE_APP_SOLANA_RPC_HOST?.toString();
   const cluster = import.meta.env.VITE_APP_SOLANA_NETWORK?.toString();
   const candyMachineId = import.meta.env.VITE_APP_CANDY_MACHINE_ID?.toString();
@@ -63,7 +63,6 @@
   }
 
   onMount(async () => {
-    solana = (window as any).solana;
     // Check if environement variables are populated
     errorOcurred = checkEnvironmentVariables();
     if (errorOcurred) {
@@ -84,6 +83,7 @@
       candyMachinePublicKey,
       provider
     );
+
     // Establish connection to wallet
     if (solana?.isPhantom) {
       $userState.walletPublicKey = await checkWalletConnected(solana);
@@ -93,14 +93,12 @@
           $userState.walletPublicKey,
           connection
         );
-        // If whitelist config populated, check if user is whitelisted (ie. check if they have token)
-        if ($candyMachineState.state.whitelistMintSettings) {
-          $userState.isWhiteListed = await existsOwnerSPLToken(
-            $userState.walletPublicKey,
-            connection,
-            $candyMachineState.state.whitelistMintSettings?.mint
-          );
-        }
+        // Check if user is whitelisted (ie. check if they have token)
+        $userState.isWhiteListed = await existsOwnerSPLToken(
+          $userState.walletPublicKey,
+          connection,
+          $candyMachineState.state.whitelistMintSettings?.mint
+        );
       }
     }
 
@@ -143,7 +141,7 @@
       <br />
       <!-- Main Body -->
       <div class="p-6">
-        <img src={IMAGE_LINK} alt="" class=" w-1/2 mx-auto m-5" />
+        <img src={IMAGE_LINK} alt="" class=" w-1/2 mx-auto m-5" style="border-radius: 15%;" />
         <div
           class=" text-lg sm:text-2xl font-mono font-bold py-5 tracking-wider"
         >
@@ -152,7 +150,7 @@
         <div class="text-sm sm:text-md font-semibold pb-5 text-gray-600 ">
           {DESCRTIPTION}
         </div>
-        <Button {connection} />
+        <Button {solana} {connection} />
 
         <div class=" tracking-widest font-bold text-sm pt-3 text-gray-400">
           {itemsRedeemed}/{itemsAvailable} claimed

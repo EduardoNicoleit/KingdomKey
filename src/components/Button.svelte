@@ -10,7 +10,6 @@
   import { awaitTransactionSignatureConfirmation } from "../lib/connection";
   import confetti from "canvas-confetti";
   import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-  import { onMount } from "svelte";
 
   const txTimeout = 30000;
   const cluster = import.meta.env.VITE_APP_SOLANA_NETWORK?.toString();
@@ -20,23 +19,12 @@
     $candyMachineState?.state.whitelistMintSettings?.discountPrice;
   $: isActive = $candyMachineState?.state.isActive;
   $: isSoldOut = $candyMachineState?.state.isSoldOut;
-  $: whitelist = $candyMachineState?.state.whitelistMintSettings;
   $: userWhitelisted = $userState.isWhiteListed;
   $: price = $candyMachineState?.state.price;
-  $: nftPrice = () => {
-    const discountPrice =
-      $candyMachineState?.state?.whitelistMintSettings?.discountPrice?.toNumber();
-    const normalPrice = $candyMachineState?.state?.price.toNumber() ?? 0;
-    if ($userState.isWhiteListed && discountPrice) {
-      return discountPrice;
-    } else {
-      return normalPrice;
-    }
-  };
 
   let isMinting = false;
   let mintSuccessful = false;
-  let { solana } = window as any;
+  export let solana;
   export let connection;
 
   async function connectWalletButton() {
@@ -48,13 +36,11 @@
         connection
       );
       // Check if user is whitelisted (ie. check if they have token)
-      if ($candyMachineState.state.whitelistMintSettings) {
-        $userState.isWhiteListed = await existsOwnerSPLToken(
-          $userState.walletPublicKey,
-          connection,
-          $candyMachineState.state.whitelistMintSettings?.mint
-        );
-      }
+      $userState.isWhiteListed = await existsOwnerSPLToken(
+        $userState.walletPublicKey,
+        connection,
+        $candyMachineState.state.whitelistMintSettings?.mint
+      );
     }
   }
 
@@ -113,56 +99,38 @@
       origin: { y: 0.6 },
     });
   }
-
-  function getPhantomWallet() {
-    // Here we check for the solana object again.
-    // If its present, reload the page so state is refreshed.
-    solana = (window as any).solana;
-    if (solana) {
-      location.reload();
-    } else {
-      window.open("https://phantom.app/", "_blank");
-    }
-  }
-
-  onMount(() => {
-    solana = (window as any).solana;
-  });
 </script>
 
 <div class="flex flex-col">
   {#if !solana}
     <button
       class=" px-3 py-2 rounded-md  bg-sky-600  hover:bg-sky-700 text-white font-bold"
-      on:click={() => getPhantomWallet()}>Get Phantom Wallet</button
+      on:click={() => window.open("https://phantom.app/", "_blank")}
+      >Get Phantom Wallet</button
     >
   {:else if !$userState.walletPublicKey}
     <button
       class=" px-3 py-2 rounded-md  bg-sky-600  hover:bg-sky-700 text-white font-bold"
       on:click={connectWalletButton}>Connect</button
     >
+  {:else if !isActive && !userWhitelisted}
+    <button
+      class=" px-3 py-2 rounded-md  bg-sky-600  hover:bg-sky-700 text-white font-bold disabled:bg-gray-400 "
+      disabled={true}>Mint live @ {date.toUTCString()}</button
+    >
   {:else if isSoldOut}
     <button
       class=" px-3 py-2 rounded-md  bg-sky-600  hover:bg-sky-700 text-white font-bold "
       >Sold Out!</button
     >
-  {:else if !isActive && whitelist?.presale && !userWhitelisted}
-    <!-- Mint not active, presale enabled but user not whitelisted -->
-    <button class=" btn-black" disabled={true}
-      >Whitelist Presale Access Only</button
-    >
-  {:else if !isActive && !whitelist?.presale}
-    <!-- Mint is not active and not a presale -->
-    <button class=" btn-black" disabled={true}
-      >Mint Live @ {date.toUTCString()}</button
-    >
-  {:else if $userState.userBalance < nftPrice()}
+  {:else if $userState.userBalance < price}
     <button
       class=" px-3 py-2 rounded-md  bg-sky-600  hover:bg-sky-700 text-white font-bold disabled:bg-gray-400"
       disabled={true}
-      >Insufficient Funds ({(nftPrice() / LAMPORTS_PER_SOL).toFixed(2)} SOL required)</button
+      >Insufficient Funds ({(
+        (userWhitelisted ? whitelistPrice : price) / LAMPORTS_PER_SOL
+      ).toFixed(2)} SOL required)</button
     >
-    <div />
   {:else}
     <button
       class=" px-3 py-2 rounded-md  bg-sky-600  hover:bg-sky-700 text-white font-bold disabled:bg-gray-400"
@@ -174,7 +142,11 @@
       {:else if mintSuccessful}
         <span>Mint succesful! Mint another?</span>
       {:else}
-        <span>Mint ({(nftPrice() / LAMPORTS_PER_SOL).toFixed(2)} SOL)</span>
+        <span
+          >Mint ({(
+            (userWhitelisted ? whitelistPrice : price) / LAMPORTS_PER_SOL
+          ).toFixed(2)} SOL)</span
+        >
       {/if}
     </button>
   {/if}
